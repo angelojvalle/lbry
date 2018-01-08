@@ -1400,9 +1400,7 @@ class LBRYumWallet(Wallet):
                 addresses.append(address)
 
         outputs = [[address, amount] for address in addresses]
-        tx = yield self._run_cmd_as_defer_succeed('paytomany', outputs)
-        if broadcast and tx['complete']:
-            tx['txid'] = yield self._broadcast_transaction(tx)
+        tx = yield self._run_cmd_as_defer_succeed('paytomany', outputs, broadcast=broadcast)
         defer.returnValue(tx)
 
     # Return an address with no balance in it, if
@@ -1484,14 +1482,14 @@ class LBRYumWallet(Wallet):
         defer.returnValue(txid)
 
     def _do_send_many(self, payments_to_send):
-        def broadcast_send_many(paytomany_out):
-            if 'hex' not in paytomany_out:
-                raise Exception('Unexpected paytomany output:{}'.format(paytomany_out))
-            return self._broadcast_transaction(paytomany_out['hex'])
+        def handle_paytomany_out(paytomany_out):
+            if not paytomany_out['success']:
+                raise Exception("Failed paytomany, reason:{}".format(paytomany_out['reason']))
+            return paytomany_out['txid']
 
         log.debug("Doing send many. payments to send: %s", str(payments_to_send))
         d = self._run_cmd_as_defer_succeed('paytomany', payments_to_send.iteritems())
-        d.addCallback(lambda out: broadcast_send_many(out))
+        d.addCallback(lambda out: handle_paytomany_out(out))
         return d
 
     def _get_value_for_name(self, name):
