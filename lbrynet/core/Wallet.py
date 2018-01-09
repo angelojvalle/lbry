@@ -1473,14 +1473,6 @@ class LBRYumWallet(Wallet):
         claim_out = yield self._run_cmd_as_defer_succeed('sendwithsupport', claim_id, amount)
         defer.returnValue(claim_out)
 
-    @defer.inlineCallbacks
-    def _broadcast_transaction(self, raw_tx):
-        txid = yield self._run_cmd_as_defer_succeed('broadcast', raw_tx)
-        log.info("Broadcast tx: %s", txid)
-        if len(txid) != 64:
-            raise Exception("Transaction rejected. Raw tx: {}".format(raw_tx))
-        defer.returnValue(txid)
-
     def _do_send_many(self, payments_to_send):
         def handle_paytomany_out(paytomany_out):
             if not paytomany_out['success']:
